@@ -1,5 +1,26 @@
 # AppSignal for Ruby gem Changelog
 
+## 3.4.10
+
+### Changed
+
+- [61e093b8](https://github.com/appsignal/appsignal-ruby/commit/61e093b8b89efd9914fe5252b6200a288348d394) patch - Bump agent to 6bec691.
+  
+  - Upgrade `sql_lexer` to v0.9.5. It adds sanitization support for the `THEN` and `ELSE` logical operators.
+
+## 3.4.9
+
+### Added
+
+- [d048c778](https://github.com/appsignal/appsignal-ruby/commit/d048c778e2718110609ba03f4d755953828bf4c5) patch - Allow passing custom data using the `appsignal` context via the Rails error reporter:
+  
+  ```ruby
+  custom_data = { :hash => { :one => 1, :two => 2 }, :array => [1, 2] }
+  Rails.error.handle(:context => { :appsignal => { :custom_data => custom_data } }) do
+    raise "Test"
+  end
+  ```
+
 ## 3.4.8
 
 ### Added
