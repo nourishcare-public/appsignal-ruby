@@ -294,19 +294,48 @@ describe Appsignal::Config do
       end
       let(:config) { Appsignal::Config.new(config_path, "foo") }
 
-      it "logs & prints an error, skipping the file source" do
-        stdout = std_stream
-        stderr = std_stream
-        log = capture_logs { capture_std_streams(stdout, stderr) { config } }
-        message = "An error occured while loading the AppSignal config file. " \
-          "Skipping file config.\n" \
-          "File: #{File.join(config_path, "config", "appsignal.yml").inspect}\n" \
-          "KeyError: key not found"
-        expect(log).to contains_log :error, message
-        expect(log).to include("/appsignal/config.rb:") # Backtrace
-        expect(stdout.read).to_not include("appsignal:")
-        expect(stderr.read).to include "appsignal: #{message}"
-        expect(config.file_config).to eql({})
+      context "when APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR is not set" do
+        it "logs & prints an error, skipping the file source" do
+          stdout = std_stream
+          stderr = std_stream
+          log = capture_logs { capture_std_streams(stdout, stderr) { config } }
+          message = "An error occured while loading the AppSignal config file. " \
+            "Skipping file config. " \
+            "In future versions AppSignal will not start on a config file " \
+            "error. To opt-in to this new behavior set " \
+            "'APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR=1' in your system " \
+            "environment.\n" \
+            "File: #{File.join(config_path, "config", "appsignal.yml").inspect}\n" \
+            "KeyError: key not found"
+          expect(log).to contains_log :error, message
+          expect(log).to include("/appsignal/config.rb:") # Backtrace
+          expect(stdout.read).to_not include("appsignal:")
+          expect(stderr.read).to include "appsignal: #{message}"
+          expect(config.file_config).to eql({})
+        end
+      end
+
+      context "when APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR=1 is set" do
+        it "does not start AppSignal, logs & prints an error" do
+          stdout = std_stream
+          stderr = std_stream
+          ENV["APPSIGNAL_ACTIVE"] = "true"
+          ENV["APPSIGNAL_APP_NAME"] = "My app"
+          ENV["APPSIGNAL_APP_ENV"] = "dev"
+          ENV["APPSIGNAL_PUSH_API_KEY"] = "something valid"
+          ENV["APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR"] = "1"
+          log = capture_logs { capture_std_streams(stdout, stderr) { config } }
+          message = "An error occured while loading the AppSignal config file. " \
+            "Not starting AppSignal because APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR is set.\n" \
+            "File: #{File.join(config_path, "config", "appsignal.yml").inspect}\n" \
+            "KeyError: key not found"
+          expect(log).to contains_log :error, message
+          expect(log).to include("/appsignal/config.rb:") # Backtrace
+          expect(stdout.read).to_not include("appsignal:")
+          expect(stderr.read).to include "appsignal: #{message}"
+          expect(config.file_config).to eql({})
+          expect(config.active?).to be(false)
+        end
       end
     end
 
@@ -641,6 +670,7 @@ describe Appsignal::Config do
       expect(ENV.fetch("_APPSIGNAL_RUNNING_IN_CONTAINER", nil)).to eq "false"
       expect(ENV.fetch("_APPSIGNAL_ENABLE_HOST_METRICS", nil)).to eq "true"
       expect(ENV.fetch("_APPSIGNAL_HOSTNAME", nil)).to eq ""
+      expect(ENV.fetch("_APPSIGNAL_HOST_ROLE", nil)).to eq ""
       expect(ENV.fetch("_APPSIGNAL_PROCESS_NAME", nil)).to include "rspec"
       expect(ENV.fetch("_APPSIGNAL_CA_FILE_PATH", nil))
         .to eq File.join(resources_dir, "cacert.pem")
@@ -664,6 +694,17 @@ describe Appsignal::Config do
 
       it "sets the modified :hostname" do
         expect(ENV.fetch("_APPSIGNAL_HOSTNAME", nil)).to eq "Alices-MBP.example.com"
+      end
+    end
+
+    context "with :host_role" do
+      before do
+        config[:host_role] = "host role"
+        config.write_to_environment
+      end
+
+      it "sets the modified :host_role" do
+        expect(ENV.fetch("_APPSIGNAL_HOST_ROLE", nil)).to eq "host role"
       end
     end
 

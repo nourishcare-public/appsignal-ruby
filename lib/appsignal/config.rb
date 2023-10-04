@@ -83,6 +83,7 @@ module Appsignal
       "APPSIGNAL_FILTER_PARAMETERS" => :filter_parameters,
       "APPSIGNAL_FILTER_SESSION_DATA" => :filter_session_data,
       "APPSIGNAL_HOSTNAME" => :hostname,
+      "APPSIGNAL_HOST_ROLE" => :host_role,
       "APPSIGNAL_HTTP_PROXY" => :http_proxy,
       "APPSIGNAL_IGNORE_ACTIONS" => :ignore_actions,
       "APPSIGNAL_IGNORE_ERRORS" => :ignore_errors,
@@ -115,6 +116,7 @@ module Appsignal
       APPSIGNAL_BIND_ADDRESS
       APPSIGNAL_CA_FILE_PATH
       APPSIGNAL_HOSTNAME
+      APPSIGNAL_HOST_ROLE
       APPSIGNAL_HTTP_PROXY
       APPSIGNAL_LOG
       APPSIGNAL_LOG_LEVEL
@@ -230,6 +232,7 @@ module Appsignal
     #   How to integrate AppSignal manually
     def initialize(root_path, env, initial_config = {}, logger = Appsignal.logger,
       config_file = nil)
+      @config_file_error = false
       @root_path = root_path
       @config_file = config_file
       @logger = logger
@@ -337,6 +340,7 @@ module Appsignal
       ENV["_APPSIGNAL_FILTER_PARAMETERS"]            = config_hash[:filter_parameters].join(",")
       ENV["_APPSIGNAL_FILTER_SESSION_DATA"]          = config_hash[:filter_session_data].join(",")
       ENV["_APPSIGNAL_HOSTNAME"]                     = config_hash[:hostname].to_s
+      ENV["_APPSIGNAL_HOST_ROLE"]                    = config_hash[:host_role].to_s
       ENV["_APPSIGNAL_HTTP_PROXY"]                   = config_hash[:http_proxy]
       ENV["_APPSIGNAL_IGNORE_ACTIONS"]               = config_hash[:ignore_actions].join(",")
       ENV["_APPSIGNAL_IGNORE_ERRORS"]                = config_hash[:ignore_errors].join(",")
@@ -414,8 +418,20 @@ module Appsignal
         nil
       end
     rescue => e
-      message = "An error occured while loading the AppSignal config file." \
-        " Skipping file config.\n" \
+      # TODO: Remove in the next major version
+      @config_file_error = true
+      extra_message =
+        if inactive_on_config_file_error?
+          "Not starting AppSignal because " \
+            "APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR is set."
+        else
+          "Skipping file config. In future versions AppSignal will not start " \
+            "on a config file error. To opt-in to this new behavior set " \
+            "'APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR=1' in your system " \
+            "environment."
+        end
+      message = "An error occured while loading the AppSignal config file. " \
+        "#{extra_message}\n" \
         "File: #{config_file.inspect}\n" \
         "#{e.class.name}: #{e}"
       Kernel.warn "appsignal: #{message}"
@@ -482,6 +498,12 @@ module Appsignal
     # stick around as a structure for future deprecations.
     def determine_overrides
       config = {}
+      # If an error was detected during config file reading/parsing and the new
+      # behavior is enabled to not start AppSignal on incomplete config, do not
+      # start AppSignal.
+      # TODO: Make default behavior in next major version. Remove
+      # `inactive_on_config_file_error?` call.
+      config[:active] = false if @config_file_error && inactive_on_config_file_error?
       skip_session_data = config_hash[:skip_session_data]
       send_session_data = config_hash[:send_session_data]
       if skip_session_data.nil? # Deprecated option is not set
@@ -504,6 +526,12 @@ module Appsignal
         @logger.debug("Config key '#{key}' is being overwritten") unless config_hash[key].nil?
         config_hash[key] = value
       end
+    end
+
+    # Does it use the new behavior?
+    def inactive_on_config_file_error?
+      value = ENV.fetch("APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR", false)
+      ["1", "true"].include?(value)
     end
   end
 end

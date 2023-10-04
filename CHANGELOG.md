@@ -1,5 +1,36 @@
 # AppSignal for Ruby gem Changelog
 
+## 3.4.12
+
+### Added
+
+- [441de353](https://github.com/appsignal/appsignal-ruby/commit/441de3537e7a8f36dd2460149c171aaa80929e53) patch - Add an option to not start AppSignal on config file errors. When the `config/appsignal.yml` file raises an error (due to ERB syntax issues or ERB errors), it will currently ignore the config file and try to make a configuration work from the other config sources (default, auto detection and system environment variables). This can cause unexpected behavior, because the config from the config file is not part of the loaded config.
+  
+  In future versions of the Ruby gem, AppSignal will not start when the config file contains an error. To opt-in to this new behavior, set the `APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR` system environment variable to either `1` or `true`.
+
+### Changed
+
+- [a42da92b](https://github.com/appsignal/appsignal-ruby/commit/a42da92b1ff16c48eb40dc081d3b4fbd6480c7c0) patch - Log an error when sample data is of an invalid type. Accepted types are Array and Hash. If any other types are given, it will log an error to the `appsignal.log` file.
+
+### Fixed
+
+- [8e636323](https://github.com/appsignal/appsignal-ruby/commit/8e6363232dc7fabe5f1aeae5758802e4c8d6cbfa) patch - Bump agent to 6133900.
+  
+  - Fix `disk_inode_usage` metric name format to not be interpreted as a JSON object.
+
+## 3.4.11
+
+### Added
+
+- [4722292d](https://github.com/appsignal/appsignal-ruby/commit/4722292d022fb7ff7f3403b964b24e82112e93bd) patch - Re-add support for Ruby 2.7.
+- [d782f9a6](https://github.com/appsignal/appsignal-ruby/commit/d782f9a6db0bd679f01c543900b39fc15124a25f) patch - Add the `host_role` config option. This config option can be set per host to generate some metrics automatically per host and possibly do things like grouping in the future.
+
+### Changed
+
+- [f61f4f68](https://github.com/appsignal/appsignal-ruby/commit/f61f4f68699f022d3d9dbb0fa5dc98881923a001) patch - Bump agent to version d789895.
+  
+  - Increase short data truncation from 2000 to 10000 characters.
+
 ## 3.4.10
 
 ### Changed
