@@ -1,5 +1,52 @@
 # AppSignal for Ruby gem Changelog
 
+## 3.4.15
+
+### Changed
+
+- [3fe0fa7a](https://github.com/appsignal/appsignal-ruby/commit/3fe0fa7a9cfbee0ca9f3e054155b236bd87c22fb) patch - Bump agent to eec7f7b
+  
+  Updated the probes dependency to 0.5.2. CPU usage is now normalized to the number of CPUs available to the container. This means that a container with 2 CPUs will have its CPU usage reported as 50% when using 1 CPU instead of 100%. This is a breaking change for anyone using the cpu probe.
+  
+  If you have CPU triggers set up based on the old behaviour, you might need to update those to these new normalized values to get the same behaviour. Note that this is needed only if the AppSignal integration package you're using includes this change.
+
+## 3.4.14
+
+### Changed
+
+- [bd15ec20](https://github.com/appsignal/appsignal-ruby/commit/bd15ec204474efdc504973609b70074148032618) patch - Bump agent to e8207c1.
+  
+  - Add `memory_in_percentages` and `swap_in_percentages` host metrics that represents metrics in percentages.
+  - Ignore `/snap/` disk mountpoints.
+  - Fix issue with the open span count in logs being logged as a negative number.
+  - Fix agent's TCP server getting stuck when two requests are made within the same fraction of a second.
+- [09b45c80](https://github.com/appsignal/appsignal-ruby/commit/09b45c808c2d4b215bd38211860e8e89225886e6) patch - Bump agent to b604345.
+  
+  - Add an exponential backoff to the retry sleep time to bind to the StatsD, NGINX and OpenTelemetry exporter ports. This gives the agent a longer time to connect to the ports if they become available within a 4 minute window.
+  - Changes to the agent logger:
+    - Logs from the agent and extension now use a more consistent format in logs for spans and transactions.
+    - Logs that are for more internal use are moved to the trace log level and logs that are useful for debugging most support issues are moved to the debug log level. It should not be necessary to use log level 'trace' as often anymore. The 'debug' log level should be enough.
+  - Add `running_in_container` to agent diagnose report, to be used primarily by the Python package as a way to detect if an app's host is a container or not.
+- [1945d613](https://github.com/appsignal/appsignal-ruby/commit/1945d61326266e225f13c6b828c51faf13c3745b) patch - Bump agent to 1dd2a18.
+  
+  - When adding an SQL body attribute via the extension, instead of truncating the body first and sanitising it later, sanitise it first and truncate it later. This prevents an issue where queries containing very big values result in truncated sanitisations.
+
+### Fixed
+
+- [c8698dca](https://github.com/appsignal/appsignal-ruby/commit/c8698dca465d84fdac33d88debc6fbb004458bf1) patch - Fix a deprecation warning for Sidekiq 7.1.6+ when an error is reported to AppSignal. (Thanks @bdewater-thatch!)
+- [1c606c6a](https://github.com/appsignal/appsignal-ruby/commit/1c606c6a095ac9316cdb6fc26b98c72b9c23b583) patch - Fix an internal error when some Redis info keys we're expecting are missing. This will fix the Sidekiq dashboard showing much less data than we can report when Redis is configured to not report all the data points we expect. You'll still miss out of metrics like used memory, but miss less data than before.
+
+## 3.4.13
+
+### Added
+
+- [29970d93](https://github.com/appsignal/appsignal-ruby/commit/29970d93a63aa174fbc4a41b29eff996ef0ede5e) patch - Events from `dry-monitor` are now supported. There's also native support for `rom-sql` instrumentation events if they're configured.
+- [27656744](https://github.com/appsignal/appsignal-ruby/commit/27656744d5d5657d120b4fcd97857c17421d8dfd) patch - Support Rails 7.1 ActiveSupport Notifications handler.
+
+### Changed
+
+- [6932bb3f](https://github.com/appsignal/appsignal-ruby/commit/6932bb3f7eae75beeb86e29ddc16dc16f9da4428) patch - Add configuration load modifiers to diagnose report. Track if the `APPSIGNAL_INACTIVE_ON_CONFIG_FILE_ERROR` environment variable was set.
+
 ## 3.4.12
 
 ### Added
